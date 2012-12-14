@@ -43,8 +43,8 @@ function colornicks() {
         // remove |<anything> from the end
         nick = nick.replace(/\|.*$/, '');
 
-    // remove [<anything>] or {<anything>} from the end
-	nick = nick.replace(/^(!\[|!\{)(.*)(\[.*\]|\{.*\})$/, '$2');
+        // remove [<anything>] or {<anything>} from the end
+        nick = nick.replace(/^(!\[|!\{)(.*)(\[.*\]|\{.*\})$/, '$2');
 
         return nick;
     }
