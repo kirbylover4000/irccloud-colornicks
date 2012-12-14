@@ -1,15 +1,12 @@
 // ==UserScript==
 // @name            irccloud-colornicks
 // @description     Colors nick names in IRCCloud
-// @version         0.8.1
+// @version         0.8.2
 // @author          Alex Vidal, based on http://userscripts.org/scripts/show/88258, based on http://chatlogs.musicbrainz.org/mb_chatlogger.user.js
 // @licence         BSD
 //
-// @include         http://irccloud.com/*
 // @include         https://irccloud.com/*
-// @include         http://www.irccloud.com/*
 // @include         https://www.irccloud.com/*
-// @include         http://alpha.irccloud.com/*
 // @include         https://alpha.irccloud.com/*
 // ==/UserScript==
 
@@ -44,7 +41,10 @@ function colornicks() {
         nick = nick.replace(/[`_]+$/, '');
 
         // remove |<anything> from the end
-        nick = nick.replace(/|.*$/, '');
+        nick = nick.replace(/\|.*$/, '');
+
+    // remove [<anything>] or {<anything>} from the end
+	nick = nick.replace(/^(!\[|!\{)(.*)(\[.*\]|\{.*\})$/, '$2');
 
         return nick;
     }
@@ -92,7 +92,7 @@ function colornicks() {
         attr = "[data-name='"+author+"']";
         list_rule = "ul.memberList li.user a.present"+attr;
 
-        if(is_alpha === true) {
+        if(is_alpha) {
             chat_rule = "a.author"+attr;
         } else {
             chat_rule = "div.me a.author"+attr+", span.author a"+attr;
@@ -106,12 +106,23 @@ function colornicks() {
 
 
     function process_message(message) {
-        if(message.type !== 'buffer_msg') {
+        if(message.type == "nickchange") {
+            addNick(message["newnick"]); // I'm not sure why, but the dot syntax gives us undefined here.
+        } else if(!!message.from) {
+            addNick(message.from);
+        } else if(!!message.nick) {
+            addNick(message.nick);
+        } else if(message.type == "channel_init") {
+            message.members.forEach(function(i) {
+                addNick(i.nick);
+            });
+        } else {
             return;
         }
+    }
 
-        var author = message.from;
-        if(_cache[author]) {
+    function addNick(author) {
+        if(!author || _cache[author]) {
             return;
         }
 
@@ -120,7 +131,6 @@ function colornicks() {
         _cache[author] = color;
 
         add_style(author, color);
-
     }
 
     window.SESSION.backend.bind('message', process_message);
@@ -149,12 +159,10 @@ function inject(fn) {
         var has_jquery = typeof(window.jQuery) !== 'undefined';
 
         if(has_jquery === false || has_session === false) {
-            console.log("[CN] Resources are not ready...");
             window.setTimeout(function() { waitloop(fn); }, 100);
             return;
         }
 
-        console.log("[CN] Required resources are ready, calling plugin function.");
         fn();
     }
 
