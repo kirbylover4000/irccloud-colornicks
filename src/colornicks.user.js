@@ -1,13 +1,10 @@
 // ==UserScript==
 // @name            irccloud-colornicks
 // @description     Colors nick names in IRCCloud
-// @version         0.8.2
+// @version         0.8.1
 // @author          Alex Vidal, based on http://userscripts.org/scripts/show/88258, based on http://chatlogs.musicbrainz.org/mb_chatlogger.user.js
 // @licence         BSD
-//
-// @include         https://irccloud.com/*
-// @include         https://www.irccloud.com/*
-// @include         https://alpha.irccloud.com/*
+// @include         https://*.irccloud.com/*
 // ==/UserScript==
 
 /*
@@ -20,14 +17,18 @@
 function colornicks() {
     'use strict';
 
-    var _cache = [];
+    var _cache = localStorage.colorNicks ? JSON.parse(localStorage.colorNicks) : {};
+    var memberList = false;
     var S = 0.8;
     var L = 0.25;
 
-    var is_alpha = typeof(window.SESSIONVIEW) !== 'undefined';
-
     // create the stylesheet
     var style = document.createElement('style');
+
+    for (var nick in _cache) {
+        add_style(nick, _cache[nick]);
+    }
+
     $('body').append(style);
 
     function clean_nick(nick) {
@@ -61,7 +62,6 @@ function colornicks() {
 
     }
 
-
     function get_color(nick) {
         var nickhash = hash(nick);
 
@@ -89,16 +89,10 @@ function colornicks() {
         var cur = $(style).text();
         var attr = "", chat_rule = "", list_rule = "", rule = "", _style = "";
 
-        attr = "[data-name='"+author+"']";
-        list_rule = "ul.memberList li.user a.present"+attr;
+        attr = "[data-name='" + author + "']";
+        list_rule = "ul.memberList li.user a.present" + attr;
 
-        if(is_alpha) {
-            chat_rule = "a.author"+attr;
-        } else {
-            chat_rule = "div.me a.author"+attr+", span.author a"+attr;
-        }
-
-        rule = chat_rule + ", " + list_rule;
+        rule = "a.author" + attr + ", " + list_rule;
         _style = "color: " + color + " !important;";
 
         $(style).text(cur + rule + "{" + _style + "}\n");
@@ -113,9 +107,12 @@ function colornicks() {
         } else if(!!message.nick) {
             addNick(message.nick);
         } else if(message.type == "channel_init") {
+            memberList = true;
             message.members.forEach(function(i) {
                 addNick(i.nick);
             });
+            memberList = false;
+            localStorage.colorNicks = JSON.stringify(_cache);
         } else {
             return;
         }
@@ -129,6 +126,10 @@ function colornicks() {
         var color = get_color(author);
 
         _cache[author] = color;
+
+        if(!memberList) {
+            localStorage.colorNicks = JSON.stringify(_cache);
+        }
 
         add_style(author, color);
     }
